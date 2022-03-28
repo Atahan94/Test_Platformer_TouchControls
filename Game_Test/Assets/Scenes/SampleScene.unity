@@ -688,7 +688,6 @@ MonoBehaviour:
   jumpSpeed: 7
   Enemy: 0
   health: 0
-  deadZone: 30
   layers:
   - serializedVersion: 2
     m_Bits: 64
@@ -700,7 +699,6 @@ MonoBehaviour:
   hand: {fileID: 1268066457}
   isground: 0
   doubleJump: 0
-  tex: {fileID: 633368708}
   time: 0
 --- !u!50 &2000018860
 Rigidbody2D:
@@ -866,7 +864,6 @@ MonoBehaviour:
   jumpSpeed: 7
   Enemy: 0
   health: 0
-  deadZone: 30
   layers:
   - serializedVersion: 2
     m_Bits: 64
@@ -876,7 +873,6 @@ MonoBehaviour:
   hand: {fileID: 2039962175}
   isground: 0
   doubleJump: 0
-  tex: {fileID: 633368708}
   time: 0
 --- !u!50 &2021611900
 Rigidbody2D:

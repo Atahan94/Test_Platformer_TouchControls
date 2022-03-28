@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TouchControls : MonoBehaviour
 {
    public class MyTouch
     {
-        Action<Vector2Int, int> action;
+        Action<Vector2Int, int, bool> action;
         static Player player;
         static float deadZoneOffset;
         public static int myTouchCount = 0;
@@ -68,13 +69,14 @@ public class TouchControls : MonoBehaviour
            
         }
 
-        internal void CallAction(Vector2Int pos)
+        internal void CallAction(Vector2Int pos, bool b)
         {
             
-               this.action?.Invoke(pos, Mathf.RoundToInt(touchTimer));
+               this.action?.Invoke(pos, Mathf.RoundToInt(touchTimer),b);
+               TouchControls.tex.text = "X:" + (pos.x > 0? "Right": "Left") + "Y:" + (pos.y > 0 ? "Up" : "Down");
 
         }
-        public Vector2Int CheckGetDirection() 
+        public Vector2Int GetDirection() 
         {
             Vector2Int dir = Vector2Int.RoundToInt(myTouch.position) - startPos;
 
@@ -131,12 +133,14 @@ public class TouchControls : MonoBehaviour
      Player player;
 
     
+    static Text tex;
     
     // Start is called before the first frame update
     void Start()
     {
         player = this.gameObject.GetComponent<Player>();
         MyInputs = new MyTouch[2] { new MyTouch(deadZone, player), new MyTouch(deadZone, player) };
+        tex = GameObject.Find("Canvas/Text").GetComponent<Text>();
     }
 
     private void CheckTouchPhase(MyTouch mt)
@@ -147,23 +151,19 @@ public class TouchControls : MonoBehaviour
         {
             case TouchPhase.Began:
                 MyTouch.InitializeTouch(mt);
-                if (mt.touchId == 1)
-                    mt.CallAction(Vector2Int.zero);
-                 
                 break;
             case TouchPhase.Stationary:
-                mt.CallAction(mt.CheckGetDirection());
+                mt.CallAction(mt.GetDirection(), true);
+                Debug.Log(mt.GetMyTouchPhase());
                 break;
             case TouchPhase.Ended:
-                if (mt.touchId == 0)
-                    mt.CallAction(Vector2Int.up);
+                mt.CallAction(mt.touchId == 0 ? Vector2Int.up: Vector2Int.zero, false);
                 MyTouch.ResetMyTouch(mt);
                 Debug.Log("TouchEnded");
                 break;
             case TouchPhase.Canceled:
                 break;
         }
-
     }
 
     bool GetTouches(Touch[] current, MyTouch[] myTouches, out int count) 

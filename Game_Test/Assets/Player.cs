@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
+    delegate void OnReleased(Vector2Int direction);
     public bool isActive;
 
     SpriteRenderer sr;
@@ -22,22 +23,13 @@ public class Player : MonoBehaviour
 
     float currentHealth;
 
-    
-
-    private Vector2Int direction = Vector2Int.right;
+    private Vector2Int dir = Vector2Int.right;
 
     public Vector2Int Direction
     {
-        get { return direction; }
-        private set { direction = value; }
+        get { return dir; }
+        private set { dir = value; }
     }
-
-
-    Touch[] t;
-    Vector2Int LastPos;
-    int touchCount;
-    [SerializeField]
-    float deadZone;
 
     public LayerMask[] layers;
 
@@ -49,7 +41,7 @@ public class Player : MonoBehaviour
     [SerializeField]
     bool isground, doubleJump;
 
-    public Text tex;
+   
     public float time;
 
 
@@ -59,33 +51,30 @@ public class Player : MonoBehaviour
         rb = gameObject.GetComponent<Rigidbody2D>();
         sr = gameObject.GetComponent<SpriteRenderer>();
         
-
-        currentHealth = health;
-        
+        currentHealth = health;       
+    }
+    private void OnRelease(int time, Vector2Int direction, OnReleased rel)
+    {
+        if (time < 1)
+            rel(direction);
+    }
+    internal void AttackController(Vector2Int direction, int time, bool onHold)
+    {
+        if (onHold)
+            AttackOnHold(direction, time);
+        else
+            OnRelease(time, Direction, BasicAttack);
     }
 
-    internal void AttackController(Vector2Int direction, int time)
-    {
-        if (direction == Vector2Int.down)
-        {
-            Defend();
-            return;
-        }
-        else if (direction.Equals(Vector2Int.zero))
-        {
-            DashAttack(direction);  // adjust direction deadzone
-            return;
-        }
 
-        //Debug.Log("Attack" + "direction" + direction + "Time" + time);
-        if (time < 1)
-        {
-            BasicAttack();
-        }
-        else if (time == 5)
-        {
-            PowerAttack();
-        }
+    private void AttackOnHold(Vector2Int direction, int time)
+    {
+        if (time == 5) {PowerAttack(); return;}
+                  
+        if (direction.y < 0)
+            Defend();
+        else if(!direction.Equals(Vector2Int.zero))
+            DashAttack(direction);// Adjust startpos on direciton axes
     }
 
     private void Defend()
@@ -95,7 +84,7 @@ public class Player : MonoBehaviour
 
     private void DashAttack(Vector2Int direction)
     {
-        Debug.Log("DashAttack" + direction);
+        Debug.Log("DashAttack" + "X:"+ direction.x + "Y:" + direction.y);
     }
 
     private void PowerAttack()
@@ -103,25 +92,39 @@ public class Player : MonoBehaviour
         Debug.Log("PoweAttack");
     }
 
-    private void BasicAttack()
+    private void BasicAttack(Vector2Int direction)
     {
         Debug.Log("BasicAttack");
     }
 
-    internal void MoveController(Vector2Int direction, int time)
+    internal void MoveController(Vector2Int direction, int time, bool onHold)
     {
-        Debug.Log("Moved" + "direction" + direction + "Time" + time);
-        //if (time < 1 && direction.Equals(Vector2Int.zero))
-        //    Jump(Vector2Int.up, 1f);
-        //else if(direction.Equals(Vector2Int.Up))
-        //    Jump(direction, 1f)
-        //else if(!direction.Equals(Vector2Int.down))
-        //    Move(speed, direction)
-
+        if (onHold)
+            MoveOnHold(direction);
+        else
+            OnRelease(time, direction, Jump);
+    
     }
+
+    private void MoveOnHold(Vector2Int direction)
+    {
+        if(direction.Equals(Vector2Int.zero))
+            return;
+
+        if (Mathf.Abs(direction.x) > direction.y)
+            Move(speed, direction);
+        else 
+        {
+            if (direction.y > 0)
+                Jump(direction);
+            //else move down to platform below
+        }
+        
+            
+    }
+
     private bool CheckEnemy(out Player p)
     {
-        
        BoxCollider2D col = Physics2D.OverlapCircle(hand.position, handSize, layers[1]) as BoxCollider2D;
         if (col == this.gameObject.GetComponent<BoxCollider2D>() || col == null) 
         {
@@ -139,20 +142,28 @@ public class Player : MonoBehaviour
         Gizmos.DrawWireSphere(hand.position, handSize);
     }
    
-    
     private void Damage(float damage1, float damage2, Vector2 direction)
     {
         float damage = UnityEngine.Random.Range(damage1, damage2);
         currentHealth -= damage;
         AddForceToPlayer(0.5f, direction, ForceMode2D.Impulse);
-        sr.color = Color.red;
+        StartCoroutine(ChangeColor(Color.red));
         if (currentHealth <= 0)
             this.Death();
     }
 
+    private IEnumerator ChangeColor(Color red)
+    {
+        Color Cur = sr.color;
+        sr.color = Color.red;
+        yield return new WaitForSeconds(2f);
+        sr.color = Cur;
+
+    }
+
     private void Death()
     {
-        sr.color = Color.black;
+        StartCoroutine(ChangeColor(Color.black));
         Move(0, Vector2Int.zero);
         rb.isKinematic = true;
         this.gameObject.GetComponent<BoxCollider2D>().enabled = false;
@@ -163,7 +174,7 @@ public class Player : MonoBehaviour
         rb.AddForce(damage * direction, mode);
     }
 
-    private void Jump(Vector2Int direction ,float jumpSped)
+    private void Jump(Vector2Int direction)
     {
         if (IsJumpAvaible())
             Debug.Log("Jump" + direction);
@@ -189,9 +200,5 @@ public class Player : MonoBehaviour
     private void Move(float speed, Vector2Int direction)
     {
         Debug.Log("Move");
-        //speed += speed * Time.deltaTime;
-        //rb.velocity = new Vector2(speed * direction.x, rb.velocity.y);
-       // if(direction.x != 0)
-           // this.gameObject.transform.localScale = new Vector3(this.gameObject.transform.localScale.x * direction.x, this.gameObject.transform.localScale.y, this.gameObject.transform.localScale.z);
     }
 }
