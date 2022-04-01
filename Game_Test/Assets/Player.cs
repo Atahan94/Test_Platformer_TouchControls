@@ -7,6 +7,19 @@ using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
+    public enum PlayerState
+    {
+        Idle,
+        Move,
+        Jump,
+        BasicAttack,
+        PowerAttack,
+        DashAttack,
+        Defend,
+        Hurt,
+        Death
+
+    }
     delegate void OnReleased(Vector2Int direction);
     public bool isActive;
 
@@ -41,7 +54,7 @@ public class Player : MonoBehaviour
     [SerializeField]
     bool isground, doubleJump;
 
-   
+    PlayerState currentState;
     public float time;
 
 
@@ -51,90 +64,96 @@ public class Player : MonoBehaviour
         rb = gameObject.GetComponent<Rigidbody2D>();
         sr = gameObject.GetComponent<SpriteRenderer>();
         
-        currentHealth = health;       
+        currentHealth = health;
+        currentState = PlayerState.Idle;
     }
     private void OnRelease(int time, Vector2Int direction, OnReleased rel)
     {
         if (time < 1)
             rel(direction);
     }
-    internal void AttackController(Vector2Int direction, int time, bool onHold)
-    {
-        if (onHold)
-            AttackOnHold(direction, time);
-        else
-            OnRelease(time, Direction, BasicAttack);
-    }
 
-
-    private void AttackOnHold(Vector2Int direction, int time)
-    {
-        if (time == 5) {PowerAttack(); return;}
-                  
-        if (direction.y < 0)
-            Defend();
-        else if(!direction.Equals(Vector2Int.zero))
-            DashAttack(direction);// Adjust startpos on direciton axes
-    }
-
+ 
     private void Defend()
     {
         Debug.Log("Defending");
+        currentState = PlayerState.Defend;
     }
 
-    private void DashAttack(Vector2Int direction)
+    public void DashAttack(Vector2Int direction)
     {
         Debug.Log("DashAttack" + "X:"+ direction.x + "Y:" + direction.y);
+        currentState = PlayerState.DashAttack; //Adjusr Deazone on direction axis
     }
 
-    private void PowerAttack()
+    public void PowerAttack()
     {
         Debug.Log("PoweAttack");
+        currentState = PlayerState.PowerAttack;
     }
 
-    private void BasicAttack(Vector2Int direction)
+    public void BasicAttack()
     {
         Debug.Log("BasicAttack");
+        currentState = PlayerState.BasicAttack;
     }
-
-    internal void MoveController(Vector2Int direction, int time, bool onHold)
-    {
-        if (onHold)
-            MoveOnHold(direction);
-        else
-            OnRelease(time, direction, Jump);
-    
-    }
-
-    private void MoveOnHold(Vector2Int direction)
-    {
-        if(direction.Equals(Vector2Int.zero))
-            return;
-
-        if (Mathf.Abs(direction.x) > direction.y)
-            Move(speed, direction);
-        else 
-        {
-            if (direction.y > 0)
-                Jump(direction);
-            //else move down to platform below
-        }
-        
-            
-    }
-
     private bool CheckEnemy(out Player p)
     {
-       BoxCollider2D col = Physics2D.OverlapCircle(hand.position, handSize, layers[1]) as BoxCollider2D;
-        if (col == this.gameObject.GetComponent<BoxCollider2D>() || col == null) 
+        BoxCollider2D col = Physics2D.OverlapCircle(hand.position, handSize, layers[1]) as BoxCollider2D;
+        if (col == this.gameObject.GetComponent<BoxCollider2D>() || col == null)
         {
             p = null;
             return false;
         }
         else
             p = col.GetComponent<Player>();
-            return true;
+        return true;
     }
+
+
+
+    public void Jump(Vector2Int direction)
+    {
+        if (IsJumpAvaible())
+            Debug.Log("Jump" + direction);
+        currentState = PlayerState.Jump;//Adjusr Deazone on direction axis
+        AddVelocity(speed, direction);
+    }
+    bool IsJumpAvaible()
+    {  //Check the ground with ovelap circle here!!!!
+        if (isground)
+        {
+            Debug.Log("firstJ");
+            doubleJump = true;
+            return true;
+        }
+        else if (doubleJump)
+        {
+            Debug.Log("secondJ");
+            doubleJump = false;
+            return true;
+        }
+        return false;
+    }
+
+    public void Move(Vector2Int direction)
+    {
+        Debug.Log("Move");
+        currentState = PlayerState.Move;
+        AddVelocity(speed, direction);
+    }
+
+    private void AddVelocity(float speed, Vector2Int direction)
+    {
+        float s = speed * Time.deltaTime;
+        rb.velocity = new Vector2(direction.x * s, direction.y * s);
+    }
+
+    private void AddForceToPlayer(float damage, Vector2 direction, ForceMode2D mode)
+    {
+        rb.AddForce(damage * direction, mode);
+    }
+
 
     private void OnDrawGizmos()
     {
@@ -151,6 +170,13 @@ public class Player : MonoBehaviour
         if (currentHealth <= 0)
             this.Death();
     }
+    private void Death()
+    {
+        StartCoroutine(ChangeColor(Color.black));
+        Move(Vector2Int.zero);
+        rb.isKinematic = true;
+        this.gameObject.GetComponent<BoxCollider2D>().enabled = false;
+    }
 
     private IEnumerator ChangeColor(Color red)
     {
@@ -161,44 +187,7 @@ public class Player : MonoBehaviour
 
     }
 
-    private void Death()
-    {
-        StartCoroutine(ChangeColor(Color.black));
-        Move(0, Vector2Int.zero);
-        rb.isKinematic = true;
-        this.gameObject.GetComponent<BoxCollider2D>().enabled = false;
-    }
+   
 
-    private void AddForceToPlayer(float damage, Vector2 direction, ForceMode2D mode)
-    {
-        rb.AddForce(damage * direction, mode);
-    }
-
-    private void Jump(Vector2Int direction)
-    {
-        if (IsJumpAvaible())
-            Debug.Log("Jump" + direction);
-            //rb.velocity = new Vector2(0, jumpSped);
-    }
-    bool IsJumpAvaible()
-    {  //Check the ground with ovelap circle here!!!!
-        if (isground) 
-        {
-            Debug.Log("firstJ");
-            doubleJump = true;
-            return true;
-        }
-        else if (doubleJump)
-        {
-            Debug.Log("secondJ");
-            doubleJump = false;
-            return true;  
-        }
-    return false;      
-    }
-
-    private void Move(float speed, Vector2Int direction)
-    {
-        Debug.Log("Move");
-    }
+   
 }

@@ -10,7 +10,7 @@ public class TouchControls : MonoBehaviour
 {
    public class MyTouch
     {
-        Action<Vector2Int, int, bool> action;
+        
         static Player player;
         static float deadZoneOffset;
         public static int myTouchCount = 0;
@@ -48,34 +48,15 @@ public class TouchControls : MonoBehaviour
 
         public static void InitializeTouch(MyTouch mt) 
         {
-            mt.SetAction();
             mt.SetStartPos(Vector2Int.RoundToInt(mt.myTouch.position));
         }
-        private void SetAction() 
-        {
-            if (touchId != -1)
-            {
-                if (touchId == 0)
-                    action = player.MoveController;
-                else
-                    action = player.AttackController;
-            }
-            else
-                action = null;
-        }
-        public void SetStartPos(Vector2Int pos)
+      
+        private void SetStartPos(Vector2Int pos)
         {
             startPos = pos;
            
         }
 
-        internal void CallAction(Vector2Int pos, bool b)
-        {
-            
-               this.action?.Invoke(pos, Mathf.RoundToInt(touchTimer),b);
-               TouchControls.tex.text = "X:" + (pos.x > 0? "Right": "Left") + "Y:" + (pos.y > 0 ? "Up" : "Down");
-
-        }
         public Vector2Int GetDirection() 
         {
             Vector2Int dir = Vector2Int.RoundToInt(myTouch.position) - startPos;
@@ -91,7 +72,6 @@ public class TouchControls : MonoBehaviour
             else
                 return Vector2Int.up;
         }
-
         private Vector2Int CheckDeadZonepassed(int x = 0, int y = 0)
         {
             if (Mathf.Abs(x) > deadZoneOffset)
@@ -105,12 +85,19 @@ public class TouchControls : MonoBehaviour
             else
                 return Vector2Int.zero;
         }
-
+        private void SetStartPosAxis(bool isX)
+        {
+            if (isX)
+                startPos.x = (int)myTouch.position.x;
+            else
+                startPos.x = (int)myTouch.position.x;
+        }
+         
+       
         public static void ResetMyTouch(MyTouch mt) 
         {
             mt.touchId = -1;
             mt.touchTimer = 0;
-            mt.action = null;
             mt.startPos = Vector2Int.zero;
             if (myTouchCount > 0)
                 myTouchCount--;
@@ -153,17 +140,57 @@ public class TouchControls : MonoBehaviour
                 MyTouch.InitializeTouch(mt);
                 break;
             case TouchPhase.Stationary:
-                mt.CallAction(mt.GetDirection(), true);
+                OnHold(mt);
                 Debug.Log(mt.GetMyTouchPhase());
                 break;
             case TouchPhase.Ended:
-                mt.CallAction(mt.touchId == 0 ? Vector2Int.up: Vector2Int.zero, false);
+                OnRelease(mt);
                 MyTouch.ResetMyTouch(mt);
                 Debug.Log("TouchEnded");
                 break;
             case TouchPhase.Canceled:
                 break;
         }
+    }
+
+    private void OnRelease(MyTouch mt)
+    {
+        if (mt.touchTimer < 0.5f)
+            switch (mt.touchId)
+            {
+                case 0:
+                    player.Jump(Vector2Int.up);
+                    break;
+                case 1:
+                    player.BasicAttack();
+                    break;
+            }
+
+    }
+
+    private void OnHold(MyTouch mt)
+    {
+        Vector2Int dir = mt.GetDirection();
+
+        if (!dir.Equals(Vector2Int.zero))
+            switch (mt.touchId)
+            {
+                case 0:
+                    if (Mathf.Abs(dir.x) > Mathf.Abs(dir.y))
+                        player.Move(dir);
+                    else
+                        player.Jump(dir); // Reset Dead on the dirction axis
+                    break;
+                case 1:
+                    if (mt.touchTimer == 5)
+                        player.PowerAttack();
+                    else
+                        player.DashAttack(dir);// Reset Dead on the dirction axis
+                    break;
+            }
+        else
+            player.Move(dir);
+
     }
 
     bool GetTouches(Touch[] current, MyTouch[] myTouches, out int count) 
@@ -188,8 +215,6 @@ public class TouchControls : MonoBehaviour
                     if (MyInputs[i].touchId != -1)
                         CheckTouchPhase(MyInputs[i]);
                 }
-
-
         }
         
     }
