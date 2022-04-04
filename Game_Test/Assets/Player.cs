@@ -137,7 +137,6 @@ public class Player : MonoBehaviour
         float s = speed * Time.deltaTime;
         rb.velocity = new Vector2(direction.x * s, direction.y * s);
     }
-
     private void AddForceToPlayer(float damage, Vector2 direction, ForceMode2D mode)
     {
         rb.AddForce(damage * direction, mode);
