@@ -14,6 +14,7 @@ public class TouchControls : MonoBehaviour
         static Player player;
         static float deadZoneOffset;
         public static int myTouchCount = 0;
+ 
 
         private Touch myTouch;
         private Vector2Int startPos;
@@ -44,11 +45,6 @@ public class TouchControls : MonoBehaviour
                 touchId = -1;
             }
             
-        }
-
-        public static void InitializeTouch(MyTouch mt) 
-        {
-            mt.SetStartPos(Vector2Int.RoundToInt(mt.myTouch.position));
         }
       
         private void SetStartPos(Vector2Int pos)
@@ -92,8 +88,11 @@ public class TouchControls : MonoBehaviour
             else
                 startPos.x = (int)myTouch.position.x;
         }
-         
-       
+
+        public static void InitializeTouch(MyTouch mt)
+        {
+            mt.SetStartPos(Vector2Int.RoundToInt(mt.myTouch.position));
+        }
         public static void ResetMyTouch(MyTouch mt) 
         {
             mt.touchId = -1;
@@ -172,25 +171,23 @@ public class TouchControls : MonoBehaviour
     {
         Vector2Int dir = mt.GetDirection();
 
-        if (!dir.Equals(Vector2Int.zero))
+       
             switch (mt.touchId)
             {
                 case 0:
-                    if (Mathf.Abs(dir.x) > Mathf.Abs(dir.y))
+                    if (Mathf.Abs(dir.x) > Mathf.Abs(dir.y) || dir.Equals(Vector2Int.zero))
                         player.Move(dir);
                     else
-                        player.Jump(dir); // Reset Dead on the dirction axis
+                        player.Jump(dir);// Reset Deadzone on the dirction axis
                     break;
                 case 1:
                     if (mt.touchTimer == 5)
                         player.PowerAttack();
-                    else
-                        player.DashAttack(dir);// Reset Dead on the dirction axis
+                    else if(!dir.Equals(Vector2Int.zero))
+                        player.DashAttack(dir);// Reset Deadzone on the dirction axis
                     break;
             }
-        else
-            player.Move(dir);
-
+       
     }
 
     bool GetTouches(Touch[] current, MyTouch[] myTouches, out int count) 

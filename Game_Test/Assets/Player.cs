@@ -67,11 +67,6 @@ public class Player : MonoBehaviour
         currentHealth = health;
         currentState = PlayerState.Idle;
     }
-    private void OnRelease(int time, Vector2Int direction, OnReleased rel)
-    {
-        if (time < 1)
-            rel(direction);
-    }
 
  
     private void Defend()
@@ -79,19 +74,16 @@ public class Player : MonoBehaviour
         Debug.Log("Defending");
         currentState = PlayerState.Defend;
     }
-
     public void DashAttack(Vector2Int direction)
     {
         Debug.Log("DashAttack" + "X:"+ direction.x + "Y:" + direction.y);
         currentState = PlayerState.DashAttack; //Adjusr Deazone on direction axis
     }
-
     public void PowerAttack()
     {
         Debug.Log("PoweAttack");
         currentState = PlayerState.PowerAttack;
     }
-
     public void BasicAttack()
     {
         Debug.Log("BasicAttack");
@@ -109,8 +101,6 @@ public class Player : MonoBehaviour
             p = col.GetComponent<Player>();
         return true;
     }
-
-
 
     public void Jump(Vector2Int direction)
     {
@@ -135,7 +125,6 @@ public class Player : MonoBehaviour
         }
         return false;
     }
-
     public void Move(Vector2Int direction)
     {
         Debug.Log("Move");
@@ -153,8 +142,6 @@ public class Player : MonoBehaviour
     {
         rb.AddForce(damage * direction, mode);
     }
-
-
     private void OnDrawGizmos()
     {
         Gizmos.DrawWireSphere(feet.position, feetSize);
